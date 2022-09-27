@@ -82,3 +82,73 @@ iris[sort,]
 iris$size <- iris$Sepal.Length*iris$Sepal.Width
 sort2 <- order(-iris$size)
 iris[sort2,]
+
+library(dplyr)
+summarised <- summarise(iris,Mean.Width=mean(Sepal.Width))
+summarised
+
+#dplyr
+select1 <- dplyr::select(iris, Sepal.Length, Sepal.Width)
+head(select1)
+select2 <- dplyr::select(iris, Sepal.Length:Petal.Width)
+head(select2,2)
+select3 <- dplyr::select(iris, c(1,2,5))
+head(select3)
+select4 <- dplyr::select(iris, -Species,-Sepal.Length)
+head(select4)
+
+#filter
+setosa <- iris$Species=="setosa"
+setosa <- iris[setosa,]
+setosa
+filtered1 <- filter(iris, Species=="setosa")
+filtered1
+filtered2 <- filter(iris, Species=="versicolor",Sepal.Width>3)
+filtered2
+filtered3 <- filter(iris, Species=="versicolor",Sepal.Width>3,Sepal.Length>4)
+filtered3
+
+tail(filtered2,2)
+
+#mutate
+rm(mutated)
+mutated1 <- mutate(iris, Greater.Half=Sepal.Width>0.5*Sepal.Length)
+tail(mutated1)
+
+table(mutated1$Greater.Half)
+
+table(iris$mutated1.Greater.Half)
+
+#arrange
+arranged1 <- arrange(iris,Sepal.Width)
+head(arranged1)
+arranged2 <- arrange(iris,desc(Sepal.Width))
+tail(arranged2)
+
+#group_by
+gp <- group_by(iris,Species)
+gp
+gp.mean <- summarise(gp, Mean.Sepal=mean(Sepal.Width), Mean.Petal=mean(Petal.Width))
+gp.mean
+
+
+#pipe operator %>%
+
+objectB <- iris%>%
+  arrange(iris$Sepal.Width)%>%
+  filter(Species=="setosa", Sepal.Width>3)
+head(objectB)  
+tail(objectB,2)
+
+iris%>%
+  group_by(Species)%>%
+  summarise(Mean.Length=mean(Sepal.Length))
+
+
+
+
+
+
+
+
+
