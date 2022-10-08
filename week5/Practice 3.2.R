@@ -8,14 +8,13 @@ before_diet <- c(104,95,87,77,112)
 after_diet <- c(96,91,81,75,118)
 diet <- data.frame(before_diet,after_diet)
 rownames(diet) <- paste("subject_",c(1:5),sep="")
-str(diet)
+head(diet)
 
 #reformat data frame "diet" 
 diet_r <- diet %>% 
   pivot_longer(before_diet:after_diet, names_to="time", values_to="weight") %>%
   as.data.frame()
 diet_r$time <- as.factor(diet_r$time)
-typeof(diet_r$weight)
 str(diet_r)
 
 #create "WEIGHT_LOSS" list
@@ -32,5 +31,4 @@ text <- "It's challenging but interesting. I wish I could feel the same when man
 BUBBLE_DIET <- list(diet_r=diet_r,WEIGHT_LOSS=WEIGHT_LOSS,message=text)
 str(BUBBLE_DIET)
 BUBBLE_DIET
-
 

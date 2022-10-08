@@ -18,7 +18,7 @@ before_diet <- c(104,95,87,77,112)
 after_diet <- c(96,91,81,75,118)
 diet <- data.frame(before_diet,after_diet)
 rownames(diet) <- paste("subject_",c(1:5),sep="")
-str(diet)
+head(diet)
 ```
 
 
@@ -29,7 +29,6 @@ diet_r <- diet %>%
   pivot_longer(before_diet:after_diet, names_to="time", values_to="weight") %>%
   as.data.frame()
 diet_r$time <- as.factor(diet_r$time)
-typeof(diet_r$weight)
 str(diet_r)
 ```
 

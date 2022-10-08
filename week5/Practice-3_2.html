@@ -380,10 +380,13 @@ pre code {
 after_diet &lt;- c(96,91,81,75,118)
 diet &lt;- data.frame(before_diet,after_diet)
 rownames(diet) &lt;- paste(&quot;subject_&quot;,c(1:5),sep=&quot;&quot;)
-str(diet)</code></pre>
-<pre><code>## &#39;data.frame&#39;:    5 obs. of  2 variables:
-##  $ before_diet: num  104 95 87 77 112
-##  $ after_diet : num  96 91 81 75 118</code></pre>
+head(diet)</code></pre>
+<pre><code>##           before_diet after_diet
+## subject_1         104         96
+## subject_2          95         91
+## subject_3          87         81
+## subject_4          77         75
+## subject_5         112        118</code></pre>
 </div>
 <div id="reformat-data-frame-diet" class="section level4">
 <h4><strong>Reformat data frame “diet”</strong></h4>
@@ -391,9 +394,7 @@ str(diet)</code></pre>
   pivot_longer(before_diet:after_diet, names_to=&quot;time&quot;, values_to=&quot;weight&quot;) %&gt;%
   as.data.frame()
 diet_r$time &lt;- as.factor(diet_r$time)
-typeof(diet_r$weight)</code></pre>
-<pre><code>## [1] &quot;double&quot;</code></pre>
-<pre class="r"><code>str(diet_r)</code></pre>
+str(diet_r)</code></pre>
 <pre><code>## &#39;data.frame&#39;:    10 obs. of  2 variables:
 ##  $ time  : Factor w/ 2 levels &quot;after_diet&quot;,&quot;before_diet&quot;: 2 1 2 1 2 1 2 1 2 1
 ##  $ weight: num  104 96 95 91 87 81 77 75 112 118</code></pre>
