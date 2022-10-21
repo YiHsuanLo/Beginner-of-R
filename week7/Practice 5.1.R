@@ -14,19 +14,19 @@ library(htmltools)
 #Create a website list of shrines 
 website <- list(paste(sep = "<br/>",
                       "<b><a href='http://www.shimogamo-jinja.or.jp/'>Shimogamo-jinja Shrine</a></b>",
-                      "59 Shimogamo Izumigawa-cho, Sakyo-ku, Kyoto-shi, Kyoto-fu"),
+                      "Address: 59 Shimogamo Izumigawa-cho, Sakyo-ku, Kyoto-shi, Kyoto-fu"),
                 paste(sep = "<br/>",
                       "<b><a href='http://www.heianjingu.or.jp/'>Heian-jingu Shrine</a></b>",
-                      "Okazaki Nishitenno-cho, Sakyo-ku, Kyoto-shi, Kyoto-fu"),
+                      "Address: Okazaki Nishitenno-cho, Sakyo-ku, Kyoto-shi, Kyoto-fu"),
                 paste(sep = "<br/>",
                       "<b><a href='https://kifunejinja.jp//'>Kifune-jinja Shrine</a></b>",
-                      "180 Kuramakibune-cho, Sakyo-ku, Kyoto-shi, Kyoto-fu"),
+                      "Address: 180 Kuramakibune-cho, Sakyo-ku, Kyoto-shi, Kyoto-fu"),
                 paste(sep = "<br/>",
                       "<b><a href='https://www.yasaka-jinja.or.jp/'>Yasaka-jinja Shrine</a></b>",
-                      "625 Gionmachi Kitagawa, Higashiyama-ku, Kyoto-shi, Kyoto-fu"),
+                      "Address: 625 Gionmachi Kitagawa, Higashiyama-ku, Kyoto-shi, Kyoto-fu"),
                 paste(sep = "<br/>",
                       "<b><a href='http://inari.jp/'>Fushimi Inari Taisha Shrine</a></b>",
-                      "68 Yabunouchi-cho, Fushimi-ku, Kyoto-shi, Kyoto-fu"))
+                      "Address: 68 Yabunouchi-cho, Fushimi-ku, Kyoto-shi, Kyoto-fu"))
 
 
 #Create the coordinates of shrines
