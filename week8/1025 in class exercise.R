@@ -114,7 +114,10 @@ saveGIF({
 
 ?saveGIF
 
-
+# use Terminal to commit and push
+# check for these
+#git add
+#git commit
 
 
 
