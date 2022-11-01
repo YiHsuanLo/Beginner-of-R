@@ -84,6 +84,6 @@ chisq.test(die)
 
 
 
-#nomality is importatnt in small sample size
+#normality is important in small sample size
  
 
