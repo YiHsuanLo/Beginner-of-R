@@ -1,0 +1,420 @@
+---
+title: "Final project"
+author: "Yi-Hsuan Lo"
+date: "2022-12-31"
+output: html_document
+---
+#### Data was downloaded at "Systematic global assessment of reef fish communities by the Reef Life Survey program": "IMOS - National Reef Monitoring Network Sub-Facility - Global reef fish abundance and biomass" in .csv format, then, I took data from 2021/01/01 to 2021/12/31 in the ecoregion of "Central and Southern Great Barrier Reef" as my data subset.
+
+
+
+#### The problems I want to investigate are (1) What is the species diversity of reef fish in the region of Great Barrier Reef and what is their community structure (e.g., species composition). (2) Is there differences in fish abundance and biomass between different locations in this ecoregion. (3) Is there a linear relationship between fish abundance and fish biomass.
+
+
+
+### **Load package**
+```{r, warning=F, message=F}
+library(tidyverse)
+library(raster)
+library(MASS)
+```
+
+
+
+
+#### After deleting annotations above the data frame, I loaded it into R studio like below: 
+#### I then deleted some columns that I thought it wouldn't be used in my analysis
+### **Load data**
+```{r, warning=F, messamge=F}
+setwd("C:\\Users\\user\\Desktop")
+globalfish <- read.csv("global_fish.csv")
+fish <- globalfish[,-c(1,3:6,14,17:19,26,30)] %>% separate("survey_date",c("year","month","date"))
+str(fish)
+```
+
+
+
+
+
+
+### **Merge site_names with same long.,lat.**
+#```{r, warning=F, messamge=F}
+#fish$site_name[which(fish$site_name=="Swimming Pool Milln Reef"|fish$site_name=="Petaj Bommie Milln #Reef")] <- "Millln Reef"
+#fish$site_name[which(fish$site_name=="Tennis Court Flynn Reef"|fish$site_name=="Traceys Bommie Flynn #Reef"|fish$site_name=="Gordons Mooring Flynn Reef")] <- "Flynn Reef"
+#fish$site_name[which(fish$site_name=="Nathan Reef Bommie1"|fish$site_name=="Nathan Reef Bommie2")] <- #"Nathan Reef"
+#```
+
+
+
+
+
+
+
+#### I found there are 4 different locations in my data so I separated them into new 4 subsets, and denoted "QLD inshore - South" as "QLD_south" (QS), "QLD inshore - Central" as "QLD_central" (QC), "GBR - South" as "GBR_south" (GS), "GBR - Central" as "GBR_central" (GC)
+### **Subset data with locations**
+```{r, warning=F, messamge=F}
+unique(fish$location)
+QLD_south <- subset(fish,location=="QLD inshore - South")
+QLD_central <- subset(fish,location=="QLD inshore - Central")
+GBR_south <- subset(fish,location=="GBR - South")
+GBR_central <- subset(fish,location=="GBR - Central")
+```
+
+
+
+
+#### I first plot the study locations and found QC & QS are two separated locations while GC & GS are more like a transect. Therefore, in problem (2) and (3), I only took QC and QS two sites into account
+### **Plot study locations**
+```{r, warning=F, messamge=F}
+AUS0 <- getData('GADM',country="AUS",level=0)
+AUS1 <- getData('GADM',country="AUS",level=1)
+Queensland <- AUS1[AUS1$NAME_1=="Queensland",]
+plot(AUS0,axes=T,bg="lightblue",col="grey",xlim=c(144,149),ylim=c(-21.5,-16))
+plot(Queensland,axes=T,bg="lightblue",col="#D2B48C",add=TRUE)
+
+#coordinates of sites & plot
+coord_QLDS <- unique(cbind(QLD_south$site_name,QLD_south$longitude,QLD_south$latitude))
+coord_QLDC <- unique(cbind(QLD_central$site_name,QLD_central$longitude,QLD_central$latitude))
+coord_GBRS <- unique(cbind(GBR_south$site_name,GBR_south$longitude,GBR_south$latitude))
+coord_GBRC <- unique(cbind(GBR_central$site_name,GBR_central$longitude,GBR_central$latitude))
+coords <- rbind(coord_QLDS,coord_QLDC,coord_GBRS,coord_GBRC)
+points(coord_QLDS[,2:3],type="p",pch=16,cex=2.3,col="purple")
+points(coord_QLDC[,2:3],type="p",pch=16,cex=2.3,col="blue")
+points(coord_GBRS[,2:3],type="p",pch=16,cex=2.3,col="orange")
+points(coord_GBRC[,2:3],type="p",pch=16,cex=2.3,col="red")
+text(x=144,y=-19,"Queensland",cex=2)
+legend("bottomleft",c("QLD central","QLD south","GBR central","GBR south"),col=c("blue","purple","red","orange"),pch=16,horiz=TRUE)
+```
+
+
+
+
+
+
+#### I use tapply to help me calculate fish abundance and biomass in the groups of every species
+### **Calculate abundance & biomass in each location**
+```{r, warning=F, messamge=F}
+#species counts (How many times the species was observed)
+QS_s <- tapply(QLD_south$total,QLD_south$species,length)
+QC_s <- tapply(QLD_central$total,QLD_central$species,length)
+GS_s <- tapply(GBR_south$total,GBR_south$species,length)
+GC_s <- tapply(GBR_central$total,GBR_central$species,length)
+
+#species abundance
+QS_a <- tapply(QLD_south$total,QLD_south$species,sum)
+QC_a <- tapply(QLD_central$total,QLD_central$species,sum)
+GS_a <- tapply(GBR_south$total,GBR_south$species,sum)
+GC_a <- tapply(GBR_central$total,GBR_central$species,sum)
+
+#species biomass
+QS_b <- tapply(QLD_south$biomass,QLD_south$species,sum)
+QC_b <- tapply(QLD_central$biomass,QLD_central$species,sum)
+GS_b <- tapply(GBR_south$biomass,GBR_south$species,sum)
+GC_b <- tapply(GBR_central$biomass,GBR_central$species,sum)
+
+#total abundance
+QS_ta <- sum(QLD_south$total)
+QC_ta <- sum(QLD_central$total)
+GS_ta <- sum(GBR_south$total)
+GC_ta <- sum(GBR_central$total)
+
+#total biomass
+QS_tb <- sum(QLD_south$biomass,na.rm=T)
+QC_tb <- sum(QLD_central$biomass,na.rm=T)
+GS_tb <- sum(GBR_south$biomass,na.rm=T)
+GC_tb <- sum(GBR_central$biomass,na.rm=T)
+
+#relative abundance 
+r.abundance.QS <- tapply(QLD_south$total,QLD_south$species,sum)/sum(QLD_south$total)*100 
+r.abundance.QC <- tapply(QLD_central$total,QLD_central$species,sum)/sum(QLD_central$total)*100
+r.abundance.GS <- tapply(GBR_south$total,GBR_south$species,sum)/sum(GBR_south$total)*100
+r.abundance.GC <- tapply(GBR_central$total,GBR_central$species,sum)/sum(GBR_central$total)*100
+
+#relative biomass from dominant to rare 
+r.biomass.QS <- tapply(QLD_south$biomass,QLD_south$species,sum)/sum(QLD_south$biomass,na.rm=T)*100 
+r.biomass.QC <- tapply(QLD_central$biomass,QLD_central$species,sum)/sum(QLD_central$biomass,na.rm=T)*100
+r.biomass.GS <- tapply(GBR_south$biomass,GBR_south$species,sum)/sum(GBR_south$biomass,na.rm=T)*100
+r.biomass.GC <- tapply(GBR_central$biomass,GBR_central$species,sum)/sum(GBR_central$biomass,na.rm=T)*100
+```
+
+
+
+
+
+#### Result of previous calculations:
+### **Make a data frame of each location**
+```{r, warning=F, messamge=F}
+QS <- data.frame(counts=QS_s,abundance=QS_a,total_abn=QS_ta,relative.abn=r.abundance.QS,
+                  biomass=QS_b,total_bim=QS_tb,relative.bim=r.biomass.QS)
+head(QS)
+
+QC <- data.frame(counts=QC_s,abundance=QC_a,total_abn=QC_ta,relative.abn=r.abundance.QC,
+                  biomass=QC_b,total_bim=QC_tb,relative.bim=r.biomass.QC)
+head(QC)
+
+GS <- data.frame(counts=GS_s,abundance=GS_a,total_abn=GS_ta,relative.abn=r.abundance.GS,
+                  biomass=GS_b,total_bim=GS_tb,relative.bim=r.biomass.GS)
+head(GS)
+
+GC <- data.frame(counts=GC_s,abundance=GC_a,total_abn=GC_ta,relative.abn=r.abundance.GC,
+                  biomass=GC_b,total_bim=GC_tb,relative.bim=r.biomass.GC)
+head(GC)
+```
+
+
+#### Make a list of sites:
+### **Site list**
+```{r, warning=F, messamge=F}
+site.list <- list("QS"=QS,"QC"=QC,"GS"=GS,"GC"=GC)
+site <- c("QS","QC","GS","GC")
+```
+
+
+
+
+
+
+## Question1
+#### Separate species with its abundance to understand the community structure in this ecoregion 
+### **Species assemblage in each location, filter follow ref.1**
+```{r, warning=F, messamge=F}
+#separate species structure with relative abundance
+dominant <- NULL
+for(i in 1:4){
+  dominant[[i]] <- site.list[[i]] %>% filter(relative.abn>1)
+}
+frequent <- NULL
+for(i in 1:4){
+  frequent[[i]] <- site.list[[i]] %>% filter(relative.abn>=0.1 & relative.abn<1)
+}
+common <- NULL
+for(i in 1:4){
+  common[[i]] <- site.list[[i]] %>% filter(relative.abn>=0.01 & relative.abn<0.1)
+}
+rare <- NULL
+for(i in 1:4){
+  rare[[i]] <- site.list[[i]] %>% filter(relative.abn<0.01)
+}
+```
+
+### **Bar plot and list of top 10 species in each structure level**
+```{r, warning=F, messamge=F}
+#dominant species
+sp.d <- matrix(0,nrow=10,ncol=4)
+row <- NULL
+for(i in 1:4){
+  row[[i]] <- head(order(dominant[[i]][,4],decreasing=T),10)
+  barplot(dominant[[i]][row[[i]],][,4],xlim=c(0,10),ylim=c(0,40),main=paste("Dominant species in",site[i]),space=0.05,xlab="species",ylab="relative abundance (%)",cex.lab=1.25,cex.main=1.5)
+  axis(1,seq(0.56,length.out=10,by=1.05),rownames(dominant[[i]][row[[i]],]),cex=1)
+  text(x=seq(0.6,length.out=10,by=1.05),y=38,labels=round(dominant[[i]][row[[i]],][,4],2))
+  sp.d[,i] <- c(rownames(dominant[[i]][row[[i]],]))
+  }
+colnames(sp.d) <- site
+head(sp.d,10)
+
+#frequent species
+sp.f <- matrix(0,nrow=10,ncol=4)
+row <- NULL
+for(i in 1:4){
+  row[[i]] <- head(order(frequent[[i]][,4],decreasing=T),10)
+  barplot(frequent[[i]][row[[i]],][,4],xlim=c(0,10),ylim=c(0,1),main=paste("Frequent species in",site[i]),space=0.05,xlab="species",ylab="relative abundance (%)",cex.lab=1.25,cex.main=1.5)
+  axis(1,seq(0.56,length.out=10,by=1.05),rownames(frequent[[i]][row[[i]],]),cex=1)
+  text(x=seq(0.6,length.out=10,by=1.05),y=0.98,labels=round(frequent[[i]][row[[i]],][,4],2))
+  sp.f[,i] <- c(rownames(frequent[[i]][row[[i]],]))
+}
+colnames(sp.f) <- site
+head(sp.f,10)
+
+#common species
+sp.c <- matrix(0,nrow=10,ncol=4)
+row <- NULL
+for(i in 1:4){
+  row[[i]] <- head(order(common[[i]][,4],decreasing=T),10)
+  barplot(common[[i]][row[[i]],][,4],xlim=c(0,10),ylim=c(0,0.1),main=paste("common species in",site[i]),space=0.05,xlab="species",ylab="relative abundance (%)",cex.lab=1.25,cex.main=1.5)
+  axis(1,seq(0.56,length.out=10,by=1.05),rownames(common[[i]][row[[i]],]),cex=1)
+  text(x=seq(0.6,length.out=10,by=1.05),y=0.098,labels=round(common[[i]][row[[i]],][,4],3))
+  sp.c[,i] <- c(rownames(common[[i]][row[[i]],]))
+}
+colnames(sp.c) <- site
+head(sp.c,10)
+
+#rare species
+sp.r <- matrix(0,nrow=10,ncol=4)
+row <- NULL
+for(i in c(1,4)){
+  row[[i]] <- head(order(rare[[i]][,4],decreasing=T),10)
+  barplot(rare[[i]][row[[i]],][,4],xlim=c(0,10),ylim=c(0,0.01),main=paste("rare species in",site[i]),space=0.05,xlab="species",ylab="relative abundance (%)",cex.lab=1.25,cex.main=1.5)
+  axis(1,seq(0.56,length.out=10,by=1.05),rownames(rare[[i]][row[[i]],]),cex=1)
+  text(x=seq(0.6,length.out=10,by=1.05),y=0.0098,labels=round(rare[[i]][row[[i]],][,4],4))
+  sp.r[,i] <- c(rownames(rare[[i]][row[[i]],]))
+}
+colnames(sp.r) <- site
+head(sp.r,10)
+``` 
+
+### **Calculate alpha diversity in each location**
+```{r, warning=F, messamge=F}
+#merge data frames with species names
+QS$species <- rownames(QS)
+QC$species <- rownames(QC)
+GS$species <- rownames(GS)
+GC$species <- rownames(GC)
+a <- full_join(QS,QC,by="species")
+b <- full_join(GS,GC,by="species")
+c <- full_join(a,b,by="species")
+
+#abundance of every species in each location
+data.abd <- c[,c(8,2,10,17,24)]
+colnames(data.abd) <- c("species",site)
+#biomass of every species in each location
+data.bim <- c[,c(8,5,13,20,27)]
+colnames(data.bim) <- c("species",site)
+
+#Species Richness: 
+richness <- c()
+for(i in 1:4){
+  richness[i] <- length(which(data.abd[,i+1]>0))
+}
+
+#Shannon index: H = -1*sum(propotion(species)*log(propotion(species)))
+total.abd <- c()
+propotions <- list()
+log.prop <- list()
+multiply.ln <- list()
+sum.mul <- c()
+shannon <- c()
+for(i in 1:4){
+  total.abd[i] <- sum(which(data.abd[,i+1]>0))
+  propotions[[i]] <- data.abd[which(data.abd[,i+1]>0),i+1]/total.abd[i]
+  log.prop[[i]] <- log(propotions[[i]])
+  multiply.ln[[i]] <- propotions[[i]]*log.prop[[i]]
+  sum.mul[i] <- sum(multiply.ln[[i]]) 
+  shannon[i] <- sum.mul[i]*-1
+}
+
+#Species evenness: H/log(richness)
+evenness <- c()
+for(i in 1:4){
+  evenness[i] <- shannon[i]/log(richness[i])
+}
+
+#dataframe
+alpha.div <- data.frame(richness,shannon,evenness)
+rownames(alpha.div) <- site
+alpha.div
+```
+#### As we can see, community in location GC has the highest species richness but only with the second highest shannon diversity and evenness. Instead, community in location QS with the highest shannon diversity and evenness appears to be the strongest community in these 4 locations. 
+
+
+## Question 2
+#### Abundance and biomass in QS & QC are not normally distributed, therefore, I use non-parameter Wilcoxon test to test whether there differences in abundance and biomass between these two locations.
+### **T test of abundance and biomass in QS & QC**
+```{r, warning=F, messamge=F}
+#data frame
+abd.t.test <- data.abd[which(data.abd[,2]>0&data.abd[,3]>0),2:3]
+bim.t.test <- data.bim[which(data.bim[,2]>0&data.bim[,3]>0),2:3]
+
+#shapiro test to check normality
+#abundance and biomass do not follow normal distribution
+apply(abd.t.test,2,shapiro.test)
+apply(bim.t.test,2,shapiro.test)
+
+#Wilcoxon test
+wilcox.test(abd.t.test$QS,abd.t.test$QC)
+#significant different (p<0.05) between two location
+wilcox.test(bim.t.test$QS,bim.t.test$QC)
+#significant different (p<0.05) between two location
+```
+
+
+
+#### In this part, initially abundance and biomass appears without linear relationship. In location QS, the fitted model is not significant, as I delete some outliers and use boxcox transformation (log them), the model turns into significant; while in location QC, the model is significant at first, but the residual is still large, therefore, I transform the data either and the model become better.
+#### Also, I plot a predict line and 95% confidence interval of these linear regression models.
+### **Linear regression of abundance and biomass in QS &QC**
+```{r, warning=F, messamge=F}
+QS.data <- QS[which(QS[,5]>0),c(2,4,5,7)]
+QC.data <- QC[which(QC[,5]>0),c(2,4,5,7)]
+
+##QS
+plot(QS.data$abundance,QS.data$biomass)
+
+#fit model
+fitQS <- lm(biomass~abundance,data=QS.data)
+summary(fitQS)
+par(mfrow=c(2,2))
+plot(fitQS)
+
+QS.data.new <- QS.data[-which(rownames(QS.data)==c("Cheilinus undulatus","Caesio cuning")),]
+fitQS.new <- lm(biomass~abundance,data=QS.data.new)
+summary(fitQS.new)
+par(mfrow=c(2,2))
+plot(fitQS.new)
+par(mfrow=c(1,1))
+#boxcox transform
+boxcoxfit <- boxcox(fitQS.new,plotit=T)
+#lambda close to 0 => log transform
+(lambda <- boxcoxfit$x[which.max(boxcoxfit$y)])
+
+QS.data.new[,c(1,3)] <- log(QS.data.new[,c(1,3)])
+
+#new fit model
+fitQS2 <- lm(biomass~abundance,data=QS.data.new)
+summary(fitQS2)
+par(mfrow=c(2,2))
+plot(fitQS2)
+
+#confidence
+confint(fitQS2,level=0.95) 
+pred <- data.frame(abundance=seq(0,8,0.1))
+pred.band <- predict(fitQS2,pred,interval='confidence',level=0.95)
+
+#plot regression plot
+par(mfrow=c(1,1))
+plot(biomass~abundance,data=QS.data.new,pch=19,cex.lab=1.2,cex.axis=1.1,cex.main=1.5,
+     main="linear regression in QS",xlab="log abundance",ylab="log biomass")
+lines(pred[,1],pred.band[,1],lty=2,lwd=2,col='blue')
+lines(pred[,1],pred.band[,2],lty=2,col='red')
+lines(pred[,1],pred.band[,3],lty=2,col='red')
+
+
+#QC
+plot(QC.data$abundance,QC.data$biomass)
+
+#fit model
+fitQC <- lm(biomass~abundance,data=QC.data)
+summary(fitQC)
+par(mfrow=c(2,2))
+plot(fitQC)
+par(mfrow=c(1,1))
+#boxcox transform
+boxcoxfit2 <- boxcox(fitQC,plotit=T)
+#lambda close to 0 => log transform
+(lambda <- boxcoxfit2$x[which.max(boxcoxfit2$y)])
+
+QC.data[,c(1,3)] <- log(QC.data[,c(1,3)])
+
+#new fit model
+fitQC2 <- lm(biomass~abundance,data=QC.data)
+summary(fitQC2)
+par(mfrow=c(2,2))
+plot(fitQC2)
+
+#confidence
+confint(fitQC2,level=0.95) 
+pred2 <- data.frame(abundance=seq(0,7.8,0.1))
+pred.band2 <- predict(fitQC2,pred2,interval='confidence',level=0.95)
+
+#plot
+par(mfrow=c(1,1))
+plot(biomass~abundance,data=QC.data,pch=19,cex.lab=1.2,cex.axis=1.1,cex.main=1.5,
+     main="linear regression in QC",xlab="log abundance",ylab="log biomass")
+lines(pred2[,1],pred.band2[,1],lty=2,lwd=2,col='blue')
+lines(pred2[,1],pred.band2[,2],lty=2,col='red')
+lines(pred2[,1],pred.band2[,3],lty=2,col='red')
+```
+
+
+### ref:
+#### (1): Gust, N., Choat, J. H., & McCormick, M. I. (2001). Spatial variability in reef fish distribution, abundance, size and biomass: a multi scale analysis. Marine Ecology Progress Series, 214, 237-251.
+#### (2): Aburto‐Oropeza, O., & Balart, E. F. (2001). Community structure of reef fish in several habitats of a rocky reef in the Gulf of California. Marine ecology, 22(4), 283-305.
+#### (3): Medina, M., Estes, C., Best, B., Stallings, C. D., Montes, E., McEachron, L. G., & Muller-Karger, F. E. (2021). REEF-FISH ABUNDANCE, BIOMASS, AND BIODIVERSITY. Oceanography, 34(2), 52-61.
